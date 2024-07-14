@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, Move } from 'lucide-react';
+import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown } from 'lucide-react';
 
 const TodoList = () => {
   const [categories, setCategories] = useState(() => {
@@ -13,10 +13,9 @@ const TodoList = () => {
   });
   
   const [newCategory, setNewCategory] = useState('');
-  const [newTask, setNewTask] = useState('');
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [newTasks, setNewTasks] = useState({});
   const [editingTask, setEditingTask] = useState(null);
-  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showAllTasks, setShowAllTasks] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
@@ -34,13 +33,13 @@ const TodoList = () => {
     }
   };
 
-  const addTask = () => {
-    if (activeCategory && newTask.trim() !== '') {
+  const addTask = (category) => {
+    if (newTasks[category] && newTasks[category].trim() !== '') {
       setTasks(prev => ({
         ...prev,
-        [activeCategory]: [...prev[activeCategory], { id: Date.now(), text: newTask.trim(), completed: false }]
+        [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false }]
       }));
-      setNewTask('');
+      setNewTasks(prev => ({ ...prev, [category]: '' }));
     }
   };
 
@@ -88,9 +87,6 @@ const TodoList = () => {
       delete newTasks[categoryToRemove];
       return newTasks;
     });
-    if (activeCategory === categoryToRemove) {
-      setActiveCategory(null);
-    }
   };
 
   return (
@@ -130,32 +126,29 @@ const TodoList = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map(category => (
             <div key={category} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div 
-                className={`p-4 cursor-pointer ${activeCategory === category ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-800'}`}
-                onClick={() => setActiveCategory(category)}
-              >
+              <div className="p-4 bg-gray-100 text-gray-800">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-semibold">{category}</h3>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); removeCategory(category); }}
+                    onClick={() => removeCategory(category)}
                     className="text-gray-500 hover:text-red-500"
                   >
                     <X size={20} />
                   </button>
                 </div>
               </div>
-              {(showAllTasks || activeCategory === category) && (
+              {showAllTasks && (
                 <div className="p-4">
                   <div className="flex mb-4">
                     <input
                       type="text"
-                      value={newTask}
-                      onChange={(e) => setNewTask(e.target.value)}
+                      value={newTasks[category] || ''}
+                      onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
                       placeholder="New task"
                       className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <button 
-                      onClick={addTask}
+                      onClick={() => addTask(category)}
                       className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out"
                     >
                       Add
