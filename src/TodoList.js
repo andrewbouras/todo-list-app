@@ -46,9 +46,7 @@ const TodoList = () => {
   const completeTask = (categoryName, taskId) => {
     setTasks(prev => ({
       ...prev,
-      [categoryName]: prev[categoryName].map(task => 
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
+      [categoryName]: prev[categoryName].filter(task => task.id !== taskId)
     }));
   };
 
@@ -167,12 +165,12 @@ const TodoList = () => {
                             className="flex-grow px-2 py-1 border border-gray-300 rounded"
                           />
                         ) : (
-                          <span className={`flex-grow ${task.completed ? 'line-through text-gray-500' : ''}`}>{task.text}</span>
+                          <span className="flex-grow">{task.text}</span>
                         )}
                         <button 
                           onClick={() => completeTask(category, task.id)}
-                          className={`ml-2 ${task.completed ? 'text-green-600' : 'text-gray-400'} hover:text-green-800`}
-                          title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                          className="ml-2 text-green-600 hover:text-green-800"
+                          title="Mark as complete"
                         >
                           <CheckSquare size={20} />
                         </button>
