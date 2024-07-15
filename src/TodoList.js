@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw } from 'lucide-react';
 
 const TodoList = () => {
   const [categories, setCategories] = useState(() => {
@@ -15,18 +15,44 @@ const TodoList = () => {
   const [newCategory, setNewCategory] = useState('');
   const [newTasks, setNewTasks] = useState({});
   const [editingTask, setEditingTask] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [showAllTasks, setShowAllTasks] = useState(true);
+  const [history, setHistory] = useState([]);
+  const [futureStates, setFutureStates] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
     localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
+  }, [categories, tasks]);
+
+  const saveState = useCallback(() => {
+    setHistory(prev => [...prev, { categories, tasks }]);
+    setFutureStates([]);
+  }, [categories, tasks]);
+
+  const undo = () => {
+    if (history.length > 0) {
+      const previousState = history[history.length - 1];
+      setFutureStates(prev => [...prev, { categories, tasks }]);
+      setCategories(previousState.categories);
+      setTasks(previousState.tasks);
+      setHistory(prev => prev.slice(0, -1));
+    }
+  };
+
+  const redo = () => {
+    if (futureStates.length > 0) {
+      const nextState = futureStates[futureStates.length - 1];
+      setHistory(prev => [...prev, { categories, tasks }]);
+      setCategories(nextState.categories);
+      setTasks(nextState.tasks);
+      setFutureStates(prev => prev.slice(0, -1));
+    }
+  };
 
   const addCategory = () => {
     if (newCategory.trim() !== '') {
+      saveState();
       setCategories(prev => [...prev, newCategory.trim()]);
       setTasks(prev => ({ ...prev, [newCategory.trim()]: [] }));
       setNewCategory('');
@@ -35,6 +61,7 @@ const TodoList = () => {
 
   const addTask = (category) => {
     if (newTasks[category] && newTasks[category].trim() !== '') {
+      saveState();
       setTasks(prev => ({
         ...prev,
         [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false }]
@@ -44,6 +71,7 @@ const TodoList = () => {
   };
 
   const completeTask = (categoryName, taskId) => {
+    saveState();
     setTasks(prev => ({
       ...prev,
       [categoryName]: prev[categoryName].filter(task => task.id !== taskId)
@@ -51,6 +79,7 @@ const TodoList = () => {
   };
 
   const removeTask = (categoryName, taskId) => {
+    saveState();
     setTasks(prev => ({
       ...prev,
       [categoryName]: prev[categoryName].filter(task => task.id !== taskId)
@@ -58,6 +87,7 @@ const TodoList = () => {
   };
 
   const editTask = (categoryName, taskId, newText) => {
+    saveState();
     setTasks(prev => ({
       ...prev,
       [categoryName]: prev[categoryName].map(task => 
@@ -68,6 +98,7 @@ const TodoList = () => {
   };
 
   const moveTask = (categoryName, taskId, direction) => {
+    saveState();
     setTasks(prev => {
       const categoryTasks = [...prev[categoryName]];
       const taskIndex = categoryTasks.findIndex(task => task.id === taskId);
@@ -79,12 +110,27 @@ const TodoList = () => {
   };
 
   const removeCategory = (categoryToRemove) => {
+    saveState();
     setCategories(prev => prev.filter(category => category !== categoryToRemove));
     setTasks(prev => {
       const newTasks = { ...prev };
       delete newTasks[categoryToRemove];
       return newTasks;
     });
+  };
+
+  const editCategory = (oldName, newName) => {
+    if (newName.trim() !== '' && newName !== oldName) {
+      saveState();
+      setCategories(prev => prev.map(cat => cat === oldName ? newName : cat));
+      setTasks(prev => {
+        const newTasks = { ...prev };
+        newTasks[newName] = newTasks[oldName];
+        delete newTasks[oldName];
+        return newTasks;
+      });
+    }
+    setEditingCategory(null);
   };
 
   return (
@@ -119,6 +165,22 @@ const TodoList = () => {
           >
             {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
           </button>
+          <div>
+            <button
+              onClick={undo}
+              disabled={history.length === 0}
+              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300 ease-in-out mr-2"
+            >
+              <RotateCcw size={20} />
+            </button>
+            <button
+              onClick={redo}
+              disabled={futureStates.length === 0}
+              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300 ease-in-out"
+            >
+              <RotateCw size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -126,13 +188,32 @@ const TodoList = () => {
             <div key={category} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-4 bg-gray-100 text-gray-800">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold">{category}</h3>
-                  <button 
-                    onClick={() => removeCategory(category)}
-                    className="text-gray-500 hover:text-red-500"
-                  >
-                    <X size={20} />
-                  </button>
+                  {editingCategory === category ? (
+                    <input
+                      type="text"
+                      value={category}
+                      onChange={(e) => editCategory(category, e.target.value)}
+                      onBlur={() => setEditingCategory(null)}
+                      autoFocus
+                      className="flex-grow px-2 py-1 border border-gray-300 rounded"
+                    />
+                  ) : (
+                    <h3 className="text-xl font-semibold">{category}</h3>
+                  )}
+                  <div>
+                    <button 
+                      onClick={() => setEditingCategory(category)}
+                      className="text-blue-500 hover:text-blue-700 mr-2"
+                    >
+                      <Edit size={20} />
+                    </button>
+                    <button 
+                      onClick={() => removeCategory(category)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
               {showAllTasks && (
@@ -218,4 +299,3 @@ const TodoList = () => {
 };
 
 export default TodoList;
-
