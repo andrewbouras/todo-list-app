@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw, ListTodo, Moon, Sun } from 'lucide-react';
+import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw, ListTodo } from 'lucide-react';
 
 const TodoList = () => {
   const [categories, setCategories] = useState(() => {
@@ -25,36 +25,32 @@ const TodoList = () => {
     return savedActionItems ? JSON.parse(savedActionItems) : [];
   });
   const [newActionItem, setNewActionItem] = useState('');
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
   const [expandedTask, setExpandedTask] = useState(null);
+  const [completedTasksCount, setCompletedTasksCount] = useState(() => {
+    const savedCount = localStorage.getItem('completedTasksCount');
+    return savedCount ? parseInt(savedCount, 10) : 0;
+  });
 
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
     localStorage.setItem('tasks', JSON.stringify(tasks));
     localStorage.setItem('actionItems', JSON.stringify(actionItems));
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [categories, tasks, actionItems, darkMode]);
+    localStorage.setItem('completedTasksCount', completedTasksCount.toString());
+  }, [categories, tasks, actionItems, completedTasksCount]);
 
   const saveState = useCallback(() => {
-    setHistory(prev => [...prev, { categories, tasks, actionItems }]);
+    setHistory(prev => [...prev, { categories, tasks, actionItems, completedTasksCount }]);
     setFutureStates([]);
-  }, [categories, tasks, actionItems]);
+  }, [categories, tasks, actionItems, completedTasksCount]);
 
   const undo = () => {
     if (history.length > 0) {
       const previousState = history[history.length - 1];
-      setFutureStates(prev => [...prev, { categories, tasks, actionItems }]);
+      setFutureStates(prev => [...prev, { categories, tasks, actionItems, completedTasksCount }]);
       setCategories(previousState.categories);
       setTasks(previousState.tasks);
       setActionItems(previousState.actionItems);
+      setCompletedTasksCount(previousState.completedTasksCount);
       setHistory(prev => prev.slice(0, -1));
     }
   };
@@ -62,10 +58,11 @@ const TodoList = () => {
   const redo = () => {
     if (futureStates.length > 0) {
       const nextState = futureStates[futureStates.length - 1];
-      setHistory(prev => [...prev, { categories, tasks, actionItems }]);
+      setHistory(prev => [...prev, { categories, tasks, actionItems, completedTasksCount }]);
       setCategories(nextState.categories);
       setTasks(nextState.tasks);
       setActionItems(nextState.actionItems);
+      setCompletedTasksCount(nextState.completedTasksCount);
       setFutureStates(prev => prev.slice(0, -1));
     }
   };
@@ -96,6 +93,7 @@ const TodoList = () => {
       ...prev,
       [categoryName]: prev[categoryName].filter(task => task.id !== taskId)
     }));
+    setCompletedTasksCount(prev => prev + 1);
   };
 
   const removeTask = (categoryName, taskId) => {
@@ -231,9 +229,9 @@ const TodoList = () => {
       {categories.map((category) => (
         <div
           key={category}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+          className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
         >
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+          <div className="p-4 bg-gray-50 text-gray-800">
             <div className="flex justify-between items-center">
               {editingCategory === category ? (
                 <input
@@ -242,7 +240,7 @@ const TodoList = () => {
                   onChange={(e) => editCategory(category, e.target.value)}
                   onBlur={() => setEditingCategory(null)}
                   autoFocus
-                  className="flex-grow px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 dark:text-gray-200"
+                  className="flex-grow px-2 py-1 border border-gray-300 rounded"
                 />
               ) : (
                 <h3 className="text-lg font-semibold">{category}</h3>
@@ -250,13 +248,13 @@ const TodoList = () => {
               <div>
                 <button 
                   onClick={() => setEditingCategory(category)}
-                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mr-2"
+                  className="text-gray-500 hover:text-gray-700 mr-2"
                 >
                   <Edit size={18} />
                 </button>
                 <button 
                   onClick={() => removeCategory(category)}
-                  className="text-gray-500 dark:text-gray-400 hover:text-red-500"
+                  className="text-gray-500 hover:text-red-500"
                 >
                   <X size={18} />
                 </button>
@@ -271,7 +269,7 @@ const TodoList = () => {
                   value={newTasks[category] || ''}
                   onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
                   placeholder="New task"
-                  className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button 
                   onClick={() => addTask(category)}
@@ -284,56 +282,43 @@ const TodoList = () => {
                 {tasks[category] && tasks[category].map((task, taskIndex) => (
                   <li
                     key={task.id}
-                    className="bg-gray-50 dark:bg-gray-700 p-2 rounded"
-                    onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                    className="bg-gray-50 p-2 rounded"
                   >
                     <div className="flex items-center">
-                      {editingTask === task.id ? (
-                        <input
-                          type="text"
-                          value={task.text}
-                          onChange={(e) => editTask(category, task.id, e.target.value)}
-                          onBlur={() => setEditingTask(null)}
-                          autoFocus
-                          className="flex-grow px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 dark:text-gray-200"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="flex-grow dark:text-gray-200">{task.text}</span>
-                      )}
+                      <span className="flex-grow">{task.text}</span>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); completeTask(category, task.id); }}
-                        className="ml-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                        onClick={() => completeTask(category, task.id)}
+                        className="ml-2 text-green-600 hover:text-green-800"
                         title="Mark as complete"
                       >
                         <CheckSquare size={18} />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingTask(task.id); }}
-                        className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                        onClick={() => setEditingTask(task.id)}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
                         title="Edit task"
                       >
                         <Edit size={18} />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); moveTask(category, task.id, 'up'); }}
-                        className="ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        onClick={() => moveTask(category, task.id, 'up')}
+                        className="ml-2 text-gray-600 hover:text-gray-800"
                         title="Move up"
                         disabled={taskIndex === 0}
                       >
                         <ChevronUp size={18} />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); moveTask(category, task.id, 'down'); }}
-                        className="ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        onClick={() => moveTask(category, task.id, 'down')}
+                        className="ml-2 text-gray-600 hover:text-gray-800"
                         title="Move down"
                         disabled={taskIndex === tasks[category].length - 1}
                       >
                         <ChevronDown size={18} />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); removeTask(category, task.id); }}
-                        className="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                        onClick={() => removeTask(category, task.id)}
+                        className="ml-2 text-red-600 hover:text-red-800"
                         title="Remove task"
                       >
                         <X size={18} />
@@ -350,12 +335,12 @@ const TodoList = () => {
                                 onChange={() => toggleSubtask(category, task.id, subtask.id)}
                                 className="mr-2"
                               />
-                              <span className={`flex-grow ${subtask.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'dark:text-gray-300'}`}>
+                              <span className={`flex-grow ${subtask.completed ? 'line-through text-gray-500' : ''}`}>
                                 {subtask.text}
                               </span>
                               <button
-                                onClick={(e) => { e.stopPropagation(); removeSubtask(category, task.id, subtask.id); }}
-                                className="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                                onClick={() => removeSubtask(category, task.id, subtask.id)}
+                                className="ml-2 text-red-600 hover:text-red-800"
                                 title="Remove subtask"
                               >
                                 <X size={14} />
@@ -373,8 +358,7 @@ const TodoList = () => {
                                 e.target.value = '';
                               }
                             }}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 dark:text-gray-200"
-                            onClick={(e) => e.stopPropagation()}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                           />
                         </div>
                       </>
@@ -390,15 +374,15 @@ const TodoList = () => {
   );
 
   const ActionItemsView = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Action Items</h2>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Action Items</h2>
       <div className="flex mb-4">
         <input
           type="text"
           value={newActionItem}
           onChange={(e) => setNewActionItem(e.target.value)}
           placeholder="New action item"
-          className="flex-grow px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+          className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button 
           onClick={addActionItem}
@@ -410,17 +394,17 @@ const TodoList = () => {
       </div>
       <ul className="space-y-2">
         {actionItems.map((item, index) => (
-          <li key={item.id} className="flex items-center bg-gray-50 dark:bg-gray-700 p-2 rounded">
+          <li key={item.id} className="flex items-center bg-gray-50 p-2 rounded">
             <input
               type="checkbox"
               checked={item.completed}
               onChange={() => toggleActionItem(item.id)}
               className="mr-2"
             />
-            <span className={`flex-grow ${item.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'dark:text-gray-200'}`}>{item.text}</span>
+            <span className={`flex-grow ${item.completed ? 'line-through text-gray-500' : ''}`}>{item.text}</span>
             <button 
               onClick={() => moveActionItem(item.id, 'up')}
-              className="ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              className="ml-2 text-gray-600 hover:text-gray-800"
               title="Move up"
               disabled={index === 0}
             >
@@ -428,7 +412,7 @@ const TodoList = () => {
             </button>
             <button 
               onClick={() => moveActionItem(item.id, 'down')}
-              className="ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              className="ml-2 text-gray-600 hover:text-gray-800"
               title="Move down"
               disabled={index === actionItems.length - 1}
             >
@@ -436,7 +420,7 @@ const TodoList = () => {
             </button>
             <button 
               onClick={() => removeActionItem(item.id)}
-              className="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+              className="ml-2 text-red-600 hover:text-red-800"
               title="Remove item"
             >
               <X size={18} />
@@ -448,77 +432,72 @@ const TodoList = () => {
   );
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen py-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">My Professional Todo List</h1>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300 ease-in-out"
+    <div className="min-h-screen bg-gradient-to-r from-pink-100 via-purple-100 to-indigo-100 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">My Professional Todo List</h1>
+          <div className="text-xl font-semibold text-gray-800">
+            Tasks Completed: {completedTasksCount}
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Category</h2>
+          <div className="flex">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              placeholder="Enter category name"
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button 
+              onClick={addCategory}
+              className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center"
             >
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+              <PlusCircle size={20} className="mr-2" />
+              Add
             </button>
           </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Add New Category</h2>
-            <div className="flex">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Enter category name"
-                className="flex-grow px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              />
-              <button 
-                onClick={addCategory}
-                className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center"
-              >
-                <PlusCircle size={20} className="mr-2" />
-                Add
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-4 flex justify-between items-center">
-            <div>
-              <button
-                onClick={() => setShowActionItems(!showActionItems)}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300 ease-in-out flex items-center mr-2"
-              >
-                <ListTodo size={20} className="mr-2" />
-                {showActionItems ? 'Show Main Todo List' : 'Show Action Items'}
-              </button>
-              {!showActionItems && (
-                <button
-                  onClick={() => setShowAllTasks(!showAllTasks)}
-                  className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300 ease-in-out"
-                >
-                  {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
-                </button>
-              )}
-            </div>
-            <div>
-              <button
-                onClick={undo}
-                disabled={history.length === 0}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300 ease-in-out mr-2 disabled:opacity-50"
-              >
-                <RotateCcw size={20} />
-              </button>
-              <button
-                onClick={redo}
-                disabled={futureStates.length === 0}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300 ease-in-out disabled:opacity-50"
-              >
-                <RotateCw size={20} />
-              </button>
-            </div>
-          </div>
-
-          {showActionItems ? <ActionItemsView /> : <MainView />}
         </div>
+
+        <div className="mb-4 flex justify-between items-center">
+          <div>
+            <button
+              onClick={() => setShowActionItems(!showActionItems)}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out flex items-center mr-2"
+            >
+              <ListTodo size={20} className="mr-2" />
+              {showActionItems ? 'Show Main Todo List' : 'Show Action Items'}
+            </button>
+            {!showActionItems && (
+              <button
+                onClick={() => setShowAllTasks(!showAllTasks)}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out"
+              >
+                {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
+              </button>
+            )}
+          </div>
+          <div>
+            <button
+              onClick={undo}
+              disabled={history.length === 0}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out mr-2 disabled:opacity-50"
+            >
+              <RotateCcw size={20} />
+            </button>
+            <button
+              onClick={redo}
+              disabled={futureStates.length === 0}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out disabled:opacity-50"
+            >
+              <RotateCw size={20} />
+            </button>
+          </div>
+        </div>
+
+        {showActionItems ? <ActionItemsView /> : <MainView />}
       </div>
     </div>
   );
