@@ -351,7 +351,7 @@ const TodoList = () => {
                                           <span className="flex-grow dark:text-gray-200">{task.text}</span>
                                         )}
                                         <button 
-                                          onClick={() => completeTask(category, task.ionClick={() => completeTask(category, task.id)}
+                                          onClick={() => completeTask(category, task.id)}
                                           className="ml-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                                           title="Mark as complete"
                                         >
