@@ -165,11 +165,23 @@ const TodoList = () => {
     setActionItems(prev => prev.filter(item => item.id !== id));
   };
 
+  const moveActionItem = (id, direction) => {
+    saveState();
+    setActionItems(prev => {
+      const index = prev.findIndex(item => item.id === id);
+      if (index === -1) return prev;
+      const newIndex = direction === 'up' ? Math.max(0, index - 1) : Math.min(prev.length - 1, index + 1);
+      const newItems = [...prev];
+      [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
+      return newItems;
+    });
+  };
+
   const MainView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {categories.map(category => (
-        <div key={category} className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-4 bg-gray-100 text-gray-800">
+        <div key={category} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 bg-gray-50 text-gray-800">
             <div className="flex justify-between items-center">
               {editingCategory === category ? (
                 <input
@@ -181,20 +193,20 @@ const TodoList = () => {
                   className="flex-grow px-2 py-1 border border-gray-300 rounded"
                 />
               ) : (
-                <h3 className="text-xl font-semibold">{category}</h3>
+                <h3 className="text-lg font-semibold">{category}</h3>
               )}
               <div>
                 <button 
                   onClick={() => setEditingCategory(category)}
-                  className="text-blue-500 hover:text-blue-700 mr-2"
+                  className="text-gray-500 hover:text-gray-700 mr-2"
                 >
-                  <Edit size={20} />
+                  <Edit size={18} />
                 </button>
                 <button 
                   onClick={() => removeCategory(category)}
                   className="text-gray-500 hover:text-red-500"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
@@ -207,11 +219,11 @@ const TodoList = () => {
                   value={newTasks[category] || ''}
                   onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
                   placeholder="New task"
-                  className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button 
                   onClick={() => addTask(category)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300 ease-in-out"
                 >
                   Add
                 </button>
@@ -236,14 +248,14 @@ const TodoList = () => {
                       className="ml-2 text-green-600 hover:text-green-800"
                       title="Mark as complete"
                     >
-                      <CheckSquare size={20} />
+                      <CheckSquare size={18} />
                     </button>
                     <button 
                       onClick={() => setEditingTask(task.id)}
                       className="ml-2 text-blue-600 hover:text-blue-800"
                       title="Edit task"
                     >
-                      <Edit size={20} />
+                      <Edit size={18} />
                     </button>
                     <button 
                       onClick={() => moveTask(category, task.id, 'up')}
@@ -251,7 +263,7 @@ const TodoList = () => {
                       title="Move up"
                       disabled={index === 0}
                     >
-                      <ChevronUp size={20} />
+                      <ChevronUp size={18} />
                     </button>
                     <button 
                       onClick={() => moveTask(category, task.id, 'down')}
@@ -259,14 +271,14 @@ const TodoList = () => {
                       title="Move down"
                       disabled={index === tasks[category].length - 1}
                     >
-                      <ChevronDown size={20} />
+                      <ChevronDown size={18} />
                     </button>
                     <button 
                       onClick={() => removeTask(category, task.id)}
                       className="ml-2 text-red-600 hover:text-red-800"
                       title="Remove task"
                     >
-                      <X size={20} />
+                      <X size={18} />
                     </button>
                   </li>
                 ))}
@@ -279,26 +291,26 @@ const TodoList = () => {
   );
 
   const ActionItemsView = () => (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4">Action Items</h2>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Action Items</h2>
       <div className="flex mb-4">
         <input
           type="text"
           value={newActionItem}
           onChange={(e) => setNewActionItem(e.target.value)}
           placeholder="New action item"
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button 
           onClick={addActionItem}
-          className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out flex items-center"
+          className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center"
         >
           <PlusCircle size={20} className="mr-2" />
           Add
         </button>
       </div>
       <ul className="space-y-2">
-        {actionItems.map(item => (
+        {actionItems.map((item, index) => (
           <li key={item.id} className="flex items-center bg-gray-50 p-2 rounded">
             <input
               type="checkbox"
@@ -308,11 +320,27 @@ const TodoList = () => {
             />
             <span className={`flex-grow ${item.completed ? 'line-through text-gray-500' : ''}`}>{item.text}</span>
             <button 
+              onClick={() => moveActionItem(item.id, 'up')}
+              className="ml-2 text-gray-600 hover:text-gray-800"
+              title="Move up"
+              disabled={index === 0}
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button 
+              onClick={() => moveActionItem(item.id, 'down')}
+              className="ml-2 text-gray-600 hover:text-gray-800"
+              title="Move down"
+              disabled={index === actionItems.length - 1}
+            >
+              <ChevronDown size={18} />
+            </button>
+            <button 
               onClick={() => removeActionItem(item.id)}
               className="ml-2 text-red-600 hover:text-red-800"
               title="Remove item"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </li>
         ))}
@@ -321,34 +349,35 @@ const TodoList = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 py-8">
+    <div className="min-h-screen bg-gray-100 py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-center text-purple-800 mb-8">My Enhanced Todo List</h1>
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">My Professional Todo List</h1>
         
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Add New Category</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Category</h2>
           <div className="flex">
             <input
               type="text"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               placeholder="Enter category name"
-              className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <button 
               onClick={addCategory}
-              className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out flex items-center"
+              className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center"
             >
               <PlusCircle size={20} className="mr-2" />
               Add
             </button>
           </div>
         </div>
+
         <div className="mb-4 flex justify-between items-center">
           <div>
             <button
               onClick={() => setShowActionItems(!showActionItems)}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center mr-2"
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out flex items-center mr-2"
             >
               <ListTodo size={20} className="mr-2" />
               {showActionItems ? 'Show Main Todo List' : 'Show Action Items'}
@@ -356,7 +385,7 @@ const TodoList = () => {
             {!showActionItems && (
               <button
                 onClick={() => setShowAllTasks(!showAllTasks)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out"
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out"
               >
                 {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
               </button>
@@ -366,14 +395,14 @@ const TodoList = () => {
             <button
               onClick={undo}
               disabled={history.length === 0}
-              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300 ease-in-out mr-2"
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out mr-2 disabled:opacity-50"
             >
               <RotateCcw size={20} />
             </button>
             <button
               onClick={redo}
               disabled={futureStates.length === 0}
-              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300 ease-in-out"
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-300 ease-in-out disabled:opacity-50"
             >
               <RotateCw size={20} />
             </button>
