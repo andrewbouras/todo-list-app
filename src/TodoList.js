@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw } from 'lucide-react';
+import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw, ListTodo } from 'lucide-react';
 
 const TodoList = () => {
   const [categories, setCategories] = useState(() => {
@@ -20,22 +20,32 @@ const TodoList = () => {
   const [history, setHistory] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
 
+  // New state for Action Items
+  const [showActionItems, setShowActionItems] = useState(false);
+  const [actionItems, setActionItems] = useState(() => {
+    const savedActionItems = localStorage.getItem('actionItems');
+    return savedActionItems ? JSON.parse(savedActionItems) : [];
+  });
+  const [newActionItem, setNewActionItem] = useState('');
+
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
     localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [categories, tasks]);
+    localStorage.setItem('actionItems', JSON.stringify(actionItems));
+  }, [categories, tasks, actionItems]);
 
   const saveState = useCallback(() => {
-    setHistory(prev => [...prev, { categories, tasks }]);
+    setHistory(prev => [...prev, { categories, tasks, actionItems }]);
     setFutureStates([]);
-  }, [categories, tasks]);
+  }, [categories, tasks, actionItems]);
 
   const undo = () => {
     if (history.length > 0) {
       const previousState = history[history.length - 1];
-      setFutureStates(prev => [...prev, { categories, tasks }]);
+      setFutureStates(prev => [...prev, { categories, tasks, actionItems }]);
       setCategories(previousState.categories);
       setTasks(previousState.tasks);
+      setActionItems(previousState.actionItems);
       setHistory(prev => prev.slice(0, -1));
     }
   };
@@ -43,9 +53,10 @@ const TodoList = () => {
   const redo = () => {
     if (futureStates.length > 0) {
       const nextState = futureStates[futureStates.length - 1];
-      setHistory(prev => [...prev, { categories, tasks }]);
+      setHistory(prev => [...prev, { categories, tasks, actionItems }]);
       setCategories(nextState.categories);
       setTasks(nextState.tasks);
+      setActionItems(nextState.actionItems);
       setFutureStates(prev => prev.slice(0, -1));
     }
   };
@@ -133,6 +144,182 @@ const TodoList = () => {
     setEditingCategory(null);
   };
 
+  // New functions for Action Items
+  const addActionItem = () => {
+    if (newActionItem.trim() !== '') {
+      saveState();
+      setActionItems(prev => [...prev, { id: Date.now(), text: newActionItem.trim(), completed: false }]);
+      setNewActionItem('');
+    }
+  };
+
+  const toggleActionItem = (id) => {
+    saveState();
+    setActionItems(prev => prev.map(item => 
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
+  };
+
+  const removeActionItem = (id) => {
+    saveState();
+    setActionItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const MainView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {categories.map(category => (
+        <div key={category} className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-4 bg-gray-100 text-gray-800">
+            <div className="flex justify-between items-center">
+              {editingCategory === category ? (
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => editCategory(category, e.target.value)}
+                  onBlur={() => setEditingCategory(null)}
+                  autoFocus
+                  className="flex-grow px-2 py-1 border border-gray-300 rounded"
+                />
+              ) : (
+                <h3 className="text-xl font-semibold">{category}</h3>
+              )}
+              <div>
+                <button 
+                  onClick={() => setEditingCategory(category)}
+                  className="text-blue-500 hover:text-blue-700 mr-2"
+                >
+                  <Edit size={20} />
+                </button>
+                <button 
+                  onClick={() => removeCategory(category)}
+                  className="text-gray-500 hover:text-red-500"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+          {showAllTasks && (
+            <div className="p-4">
+              <div className="flex mb-4">
+                <input
+                  type="text"
+                  value={newTasks[category] || ''}
+                  onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
+                  placeholder="New task"
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <button 
+                  onClick={() => addTask(category)}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out"
+                >
+                  Add
+                </button>
+              </div>
+              <ul className="space-y-2">
+                {tasks[category] && tasks[category].map((task, index) => (
+                  <li key={task.id} className="flex items-center bg-gray-50 p-2 rounded">
+                    {editingTask === task.id ? (
+                      <input
+                        type="text"
+                        value={task.text}
+                        onChange={(e) => editTask(category, task.id, e.target.value)}
+                        onBlur={() => setEditingTask(null)}
+                        autoFocus
+                        className="flex-grow px-2 py-1 border border-gray-300 rounded"
+                      />
+                    ) : (
+                      <span className="flex-grow">{task.text}</span>
+                    )}
+                    <button 
+                      onClick={() => completeTask(category, task.id)}
+                      className="ml-2 text-green-600 hover:text-green-800"
+                      title="Mark as complete"
+                    >
+                      <CheckSquare size={20} />
+                    </button>
+                    <button 
+                      onClick={() => setEditingTask(task.id)}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      title="Edit task"
+                    >
+                      <Edit size={20} />
+                    </button>
+                    <button 
+                      onClick={() => moveTask(category, task.id, 'up')}
+                      className="ml-2 text-gray-600 hover:text-gray-800"
+                      title="Move up"
+                      disabled={index === 0}
+                    >
+                      <ChevronUp size={20} />
+                    </button>
+                    <button 
+                      onClick={() => moveTask(category, task.id, 'down')}
+                      className="ml-2 text-gray-600 hover:text-gray-800"
+                      title="Move down"
+                      disabled={index === tasks[category].length - 1}
+                    >
+                      <ChevronDown size={20} />
+                    </button>
+                    <button 
+                      onClick={() => removeTask(category, task.id)}
+                      className="ml-2 text-red-600 hover:text-red-800"
+                      title="Remove task"
+                    >
+                      <X size={20} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const ActionItemsView = () => (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-4">Action Items</h2>
+      <div className="flex mb-4">
+        <input
+          type="text"
+          value={newActionItem}
+          onChange={(e) => setNewActionItem(e.target.value)}
+          placeholder="New action item"
+          className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        <button 
+          onClick={addActionItem}
+          className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out flex items-center"
+        >
+          <PlusCircle size={20} className="mr-2" />
+          Add
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {actionItems.map(item => (
+          <li key={item.id} className="flex items-center bg-gray-50 p-2 rounded">
+            <input
+              type="checkbox"
+              checked={item.completed}
+              onChange={() => toggleActionItem(item.id)}
+              className="mr-2"
+            />
+            <span className={`flex-grow ${item.completed ? 'line-through text-gray-500' : ''}`}>{item.text}</span>
+            <button 
+              onClick={() => removeActionItem(item.id)}
+              className="ml-2 text-red-600 hover:text-red-800"
+              title="Remove item"
+            >
+              <X size={20} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -157,14 +344,24 @@ const TodoList = () => {
             </button>
           </div>
         </div>
-
         <div className="mb-4 flex justify-between items-center">
-          <button
-            onClick={() => setShowAllTasks(!showAllTasks)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out"
-          >
-            {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
-          </button>
+          <div>
+            <button
+              onClick={() => setShowActionItems(!showActionItems)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center mr-2"
+            >
+              <ListTodo size={20} className="mr-2" />
+              {showActionItems ? 'Show Main Todo List' : 'Show Action Items'}
+            </button>
+            {!showActionItems && (
+              <button
+                onClick={() => setShowAllTasks(!showAllTasks)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out"
+              >
+                {showAllTasks ? 'Hide All Tasks' : 'Show All Tasks'}
+              </button>
+            )}
+          </div>
           <div>
             <button
               onClick={undo}
@@ -183,116 +380,7 @@ const TodoList = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map(category => (
-            <div key={category} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4 bg-gray-100 text-gray-800">
-                <div className="flex justify-between items-center">
-                  {editingCategory === category ? (
-                    <input
-                      type="text"
-                      value={category}
-                      onChange={(e) => editCategory(category, e.target.value)}
-                      onBlur={() => setEditingCategory(null)}
-                      autoFocus
-                      className="flex-grow px-2 py-1 border border-gray-300 rounded"
-                    />
-                  ) : (
-                    <h3 className="text-xl font-semibold">{category}</h3>
-                  )}
-                  <div>
-                    <button 
-                      onClick={() => setEditingCategory(category)}
-                      className="text-blue-500 hover:text-blue-700 mr-2"
-                    >
-                      <Edit size={20} />
-                    </button>
-                    <button 
-                      onClick={() => removeCategory(category)}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {showAllTasks && (
-                <div className="p-4">
-                  <div className="flex mb-4">
-                    <input
-                      type="text"
-                      value={newTasks[category] || ''}
-                      onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
-                      placeholder="New task"
-                      className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <button 
-                      onClick={() => addTask(category)}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 transition duration-300 ease-in-out"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  <ul className="space-y-2">
-                    {tasks[category] && tasks[category].map((task, index) => (
-                      <li key={task.id} className="flex items-center bg-gray-50 p-2 rounded">
-                        {editingTask === task.id ? (
-                          <input
-                            type="text"
-                            value={task.text}
-                            onChange={(e) => editTask(category, task.id, e.target.value)}
-                            onBlur={() => setEditingTask(null)}
-                            autoFocus
-                            className="flex-grow px-2 py-1 border border-gray-300 rounded"
-                          />
-                        ) : (
-                          <span className="flex-grow">{task.text}</span>
-                        )}
-                        <button 
-                          onClick={() => completeTask(category, task.id)}
-                          className="ml-2 text-green-600 hover:text-green-800"
-                          title="Mark as complete"
-                        >
-                          <CheckSquare size={20} />
-                        </button>
-                        <button 
-                          onClick={() => setEditingTask(task.id)}
-                          className="ml-2 text-blue-600 hover:text-blue-800"
-                          title="Edit task"
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button 
-                          onClick={() => moveTask(category, task.id, 'up')}
-                          className="ml-2 text-gray-600 hover:text-gray-800"
-                          title="Move up"
-                          disabled={index === 0}
-                        >
-                          <ChevronUp size={20} />
-                        </button>
-                        <button 
-                          onClick={() => moveTask(category, task.id, 'down')}
-                          className="ml-2 text-gray-600 hover:text-gray-800"
-                          title="Move down"
-                          disabled={index === tasks[category].length - 1}
-                        >
-                          <ChevronDown size={20} />
-                        </button>
-                        <button 
-                          onClick={() => removeTask(category, task.id)}
-                          className="ml-2 text-red-600 hover:text-red-800"
-                          title="Remove task"
-                        >
-                          <X size={20} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {showActionItems ? <ActionItemsView /> : <MainView />}
       </div>
     </div>
   );
