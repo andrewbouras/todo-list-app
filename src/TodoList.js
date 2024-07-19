@@ -84,7 +84,7 @@ const TodoList = () => {
       saveState();
       setTasks(prev => ({
         ...prev,
-        [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false }]
+        [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false, subtasks: [] }]
       }));
       setNewTasks(prev => ({ ...prev, [category]: '' }));
     }
@@ -232,6 +232,37 @@ const TodoList = () => {
     }
   };
 
+  const addActionItem = () => {
+    if (newActionItem.trim() !== '') {
+      saveState();
+      setActionItems(prev => [...prev, { id: Date.now(), text: newActionItem.trim(), completed: false }]);
+      setNewActionItem('');
+    }
+  };
+
+  const toggleActionItem = (id) => {
+    saveState();
+    setActionItems(prev => prev.map(item => 
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
+  };
+
+  const removeActionItem = (id) => {
+    saveState();
+    setActionItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const moveActionItem = (id, direction) => {
+    saveState();
+    setActionItems(prev => {
+      const index = prev.findIndex(item => item.id === id);
+      if (index === -1) return prev;
+      const newIndex = direction === 'up' ? Math.max(0, index - 1) : Math.min(prev.length - 1, index + 1);
+      const newItems = [...prev];
+      [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
+      return newItems;
+    });
+  };
 
   const MainView = () => (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -320,7 +351,7 @@ const TodoList = () => {
                                           <span className="flex-grow dark:text-gray-200">{task.text}</span>
                                         )}
                                         <button 
-                                          onClick={() => completeTask(category, task.id)}
+                                          onClick={() => completeTask(category, task.ionClick={() => completeTask(category, task.id)}
                                           className="ml-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                                           title="Mark as complete"
                                         >
@@ -398,7 +429,7 @@ const TodoList = () => {
     </DragDropContext>
   );
 
-const ActionItemsView = () => (
+  const ActionItemsView = () => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Action Items</h2>
       <div className="flex mb-4">
