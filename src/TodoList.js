@@ -14,6 +14,12 @@ const TodoList = () => {
   
   const [newCategory, setNewCategory] = useState('');
   const [newTasks, setNewTasks] = useState({});
+  const handleNewTaskChange = (category, value) => {
+    setNewTasks(prev => ({
+      ...prev,
+      [category]: value
+    }));
+  };
   const [editingTask, setEditingTask] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [showAllTasks, setShowAllTasks] = useState(true);
@@ -237,7 +243,7 @@ const TodoList = () => {
                 <input
                   type="text"
                   value={category}
-                  onChange={(e) => editCategory(category, e.target.value)}
+                  onChange={(e) => handleNewTaskChange(category, e.target.value)}
                   onBlur={() => setEditingCategory(null)}
                   autoFocus
                   className="flex-grow px-2 py-1 border border-gray-300 rounded"
