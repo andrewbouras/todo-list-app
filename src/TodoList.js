@@ -30,6 +30,12 @@ const TodoList = () => {
     const savedCount = localStorage.getItem('completedTasksCount');
     return savedCount ? parseInt(savedCount, 10) : 0;
   });
+  const handleNewTaskChange = (category, value) => {
+    setNewTasks(prev => ({
+      ...prev,
+      [category]: value
+    }));
+  };
 
   const inputRefs = useRef({});
 
