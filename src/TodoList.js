@@ -98,21 +98,6 @@ const TodoList = () => {
     }
   };
 
-  const addTask = (category) => {
-    if (newTasks[category] && newTasks[category].trim() !== '') {
-      saveState();
-      setTasks(prev => ({
-        ...prev,
-        [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false, subtasks: [] }]
-      }));
-      setNewTasks(prev => ({ ...prev, [category]: '' }));
-      // Focus the input after adding a task
-      if (inputRefs.current[category]) {
-        inputRefs.current[category].focus();
-      }
-    }
-  };
-
   const completeTask = (categoryName, taskId) => {
     saveState();
     setTasks(prev => ({
