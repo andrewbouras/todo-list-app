@@ -106,6 +106,10 @@ const TodoList = () => {
         [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false, subtasks: [] }]
       }));
       setNewTasks(prev => ({ ...prev, [category]: '' }));
+      // Focus the input after adding a task
+      if (inputRefs.current[category]) {
+        inputRefs.current[category].focus();
+      }
     }
   };
 
@@ -257,13 +261,13 @@ const TodoList = () => {
             <div className="flex justify-between items-center">
               {editingCategory === category ? (
                 <input
-                  type="text"
-                  value={category}
-                  onChange={(e) => handleNewTaskChange(category, e.target.value)}
-                  onBlur={() => setEditingCategory(null)}
-                  autoFocus
-                  className="flex-grow px-2 py-1 border border-gray-300 rounded"
-                />
+                ref={el => inputRefs.current[category] = el}
+                type="text"
+                value={newTasks[category] || ''}
+                onChange={(e) => handleNewTaskChange(category, e.target.value)}
+                placeholder="New task"
+                className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
               ) : (
                 <h3 className="text-lg font-semibold">{category}</h3>
               )}
