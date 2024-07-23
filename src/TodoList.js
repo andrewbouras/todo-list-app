@@ -20,6 +20,22 @@ const TodoList = () => {
       [category]: value
     }));
   };
+
+  const addTask = (category) => {
+    if (newTasks[category] && newTasks[category].trim() !== '') {
+      saveState();
+      setTasks(prev => ({
+        ...prev,
+        [category]: [...prev[category], { id: Date.now(), text: newTasks[category].trim(), completed: false, subtasks: [] }]
+      }));
+      setNewTasks(prev => ({ ...prev, [category]: '' }));
+      // Focus the input after adding a task
+      if (inputRefs.current[category]) {
+        inputRefs.current[category].focus();
+      }
+    }
+  };
+  const inputRefs = useRef({});
   const [editingTask, setEditingTask] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [showAllTasks, setShowAllTasks] = useState(true);
@@ -271,9 +287,10 @@ const TodoList = () => {
             <div className="p-4">
               <div className="flex mb-4">
                 <input
+                  ref={el => inputRefs.current[category] = el}
                   type="text"
                   value={newTasks[category] || ''}
-                  onChange={(e) => setNewTasks(prev => ({ ...prev, [category]: e.target.value }))}
+                  onChange={(e) => handleNewTaskChange(category, e.target.value)}
                   placeholder="New task"
                   className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
