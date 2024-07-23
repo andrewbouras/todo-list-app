@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckSquare, PlusCircle, X, Edit, ChevronUp, ChevronDown, RotateCcw, RotateCw, ListTodo } from 'lucide-react';
 
 const TodoList = () => {
@@ -14,12 +14,24 @@ const TodoList = () => {
   
   const [newCategory, setNewCategory] = useState('');
   const [newTasks, setNewTasks] = useState({});
-  const handleNewTaskChange = (category, value) => {
-    setNewTasks(prev => ({
-      ...prev,
-      [category]: value
-    }));
-  };
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [showAllTasks, setShowAllTasks] = useState(true);
+  const [history, setHistory] = useState([]);
+  const [futureStates, setFutureStates] = useState([]);
+  const [showActionItems, setShowActionItems] = useState(false);
+  const [actionItems, setActionItems] = useState(() => {
+    const savedActionItems = localStorage.getItem('actionItems');
+    return savedActionItems ? JSON.parse(savedActionItems) : [];
+  });
+  const [newActionItem, setNewActionItem] = useState('');
+  const [expandedTask, setExpandedTask] = useState(null);
+  const [completedTasksCount, setCompletedTasksCount] = useState(() => {
+    const savedCount = localStorage.getItem('completedTasksCount');
+    return savedCount ? parseInt(savedCount, 10) : 0;
+  });
+
+  const inputRefs = useRef({});
 
   const addTask = (category) => {
     if (newTasks[category] && newTasks[category].trim() !== '') {
