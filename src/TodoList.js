@@ -33,6 +33,7 @@ const TodoList = () => {
 
   const inputRefs = useRef({});
 
+
   const addTask = (category) => {
     if (newTasks[category] && newTasks[category].trim() !== '') {
       saveState();
@@ -47,23 +48,6 @@ const TodoList = () => {
       }
     }
   };
-  const inputRefs = useRef({});
-  const [editingTask, setEditingTask] = useState(null);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [showAllTasks, setShowAllTasks] = useState(true);
-  const [history, setHistory] = useState([]);
-  const [futureStates, setFutureStates] = useState([]);
-  const [showActionItems, setShowActionItems] = useState(false);
-  const [actionItems, setActionItems] = useState(() => {
-    const savedActionItems = localStorage.getItem('actionItems');
-    return savedActionItems ? JSON.parse(savedActionItems) : [];
-  });
-  const [newActionItem, setNewActionItem] = useState('');
-  const [expandedTask, setExpandedTask] = useState(null);
-  const [completedTasksCount, setCompletedTasksCount] = useState(() => {
-    const savedCount = localStorage.getItem('completedTasksCount');
-    return savedCount ? parseInt(savedCount, 10) : 0;
-  });
 
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
